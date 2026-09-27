@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1020" />
+  <title>CifraPad Demo</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">♫</div>
+        <div>
+          <strong>CifraPad</strong>
+          <span>demo musical</span>
+        </div>
+      </div>
+      <nav>
+        <button class="nav-btn active" data-view="library">⌂ <span>Biblioteca</span></button>
+        <button class="nav-btn" data-view="setlists">☷ <span>Setlists</span></button>
+      </nav>
+      <div class="side-note">
+        <span class="dot"></span>
+        <small>Guardado local activado</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">REPERTORIO</p>
+          <h1 id="pageTitle">Mi biblioteca</h1>
+        </div>
+        <div class="top-actions">
+          <button class="ghost" id="importBtn">Importar</button>
+          <button class="primary" id="newSongBtn">＋ Nueva canción</button>
+        </div>
+      </header>
+
+      <section id="libraryView" class="view active">
+        <div class="toolbar">
+          <label class="search"><span>⌕</span><input id="searchInput" placeholder="Buscar canción, artista o tono…" /></label>
+          <select id="keyFilter"><option value="">Todos los tonos</option></select>
+        </div>
+        <div id="songGrid" class="song-grid"></div>
+        <div id="emptyLibrary" class="empty hidden">
+          <div class="empty-icon">♫</div>
+          <h3>No hay canciones todavía</h3>
+          <p>Crea una manualmente o importa un cifrado.</p>
+        </div>
+      </section>
+
+      <section id="setlistsView" class="view">
+        <div class="setlist-head">
+          <p>Arma repertorios para culto, ensayo, boda o cualquier evento.</p>
+          <button class="primary" id="newSetlistBtn">＋ Nuevo setlist</button>
+        </div>
+        <div id="setlistGrid" class="setlist-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="songPanel" class="panel-backdrop hidden">
+    <section class="panel wide">
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">CANCIÓN</p>
+          <h2 id="panelSongTitle">Canción</h2>
+        </div>
+        <button class="icon-btn" data-close="songPanel">×</button>
+      </header>
+      <div class="panel-body song-reader">
+        <div class="song-meta-row">
+          <div><span>Tono</span><strong id="readerKey">C</strong></div>
+          <div><span>BPM</span><strong id="readerBpm">72</strong></div>
+          <div><span>Compás</span><strong id="readerMeter">4/4</strong></div>
+        </div>
+        <div class="reader-controls">
+          <div class="control-group"><button id="transposeDown">−</button><span>TONO</span><button id="transposeUp">＋</button></div>
+          <div class="control-group"><button id="fontDown">A−</button><button id="fontUp">A＋</button></div>
+          <button class="ghost" id="editSongBtn">✎ Editar</button>
+          <button class="primary" id="stageBtn">▶ Modo escenario</button>
+        </div>
+        <div class="pad-card">
+          <div>
+            <p class="eyebrow">PAD</p>
+            <div class="pad-row">
+              <select id="padKeySelect"></select>
+              <button id="padPlayBtn" class="pad-play">▶</button>
+              <label class="range-label">Vol.<input id="padVolume" type="range" min="0" max="1" step="0.01" value="0.55"></label>
+            </div>
+          </div>
+          <small>Usa tus audios largos como ambiente tonal de fondo.</small>
+        </div>
+        <div id="readerSections" class="reader-sections"></div>
+      </div>
+    </section>
+  </div>
+
+  <div id="editorPanel" class="panel-backdrop hidden">
+    <section class="panel editor-panel">
+      <header class="panel-header sticky">
+        <div>
+          <p class="eyebrow">EDITOR</p>
+          <h2 id="editorHeading">Nueva canción</h2>
+        </div>
+        <div class="header-actions">
+          <button class="ghost" id="cancelEditorBtn">Cancelar</button>
+          <button class="primary" id="saveSongBtn">Guardar canción</button>
+        </div>
+      </header>
+      <div class="panel-body editor-body">
+        <div class="editor-grid meta-grid">
+          <label>Título<input id="songTitleInput" placeholder="Nombre de la canción"></label>
+          <label>Artista<input id="songArtistInput" placeholder="Artista / ministerio"></label>
+          <label>Tono<select id="songKeyInput"></select></label>
+          <label>BPM<input id="songBpmInput" type="number" min="20" max="300" value="72"></label>
+          <label>Compás<input id="songMeterInput" value="4/4"></label>
+        </div>
+
+        <div class="editor-tabs">
+          <button class="tab active" data-editor-tab="content">Contenido maestro</button>
+          <button class="tab" data-editor-tab="arrangement">Arreglo</button>
+        </div>
+
+        <section id="contentTab" class="editor-tab active">
+          <div class="quick-sections">
+            <span>Agregar sección:</span>
+            <button data-section="Intro">＋ Intro</button>
+            <button data-section="Estrofa">＋ Estrofa</button>
+            <button data-section="Pre-coro">＋ Pre-coro</button>
+            <button data-section="Coro">＋ Coro</button>
+            <button data-section="Puente">＋ Puente</button>
+            <button data-section="Instrumental">＋ Instrumental</button>
+            <button data-section="Final">＋ Final</button>
+          </div>
+          <div class="chord-palette-wrap">
+            <span>Acordes rápidos:</span>
+            <div id="chordPalette" class="chord-palette"></div>
+          </div>
+          <div id="sectionEditorList" class="section-editor-list"></div>
+        </section>
+
+        <section id="arrangementTab" class="editor-tab">
+          <div class="arrange-info">
+            <div>
+              <h3>Orden para tocar</h3>
+              <p>Reordena, duplica o elimina apariciones sin tocar el contenido maestro.</p>
+            </div>
+            <button class="ghost" id="restoreArrangementBtn">↺ Restaurar original</button>
+          </div>
+          <div id="arrangementList" class="arrangement-list"></div>
+        </section>
+      </div>
+    </section>
+  </div>
+
+  <div id="importPanel" class="panel-backdrop hidden">
+    <section class="panel import-panel">
+      <header class="panel-header">
+        <div><p class="eyebrow">IMPORTAR</p><h2>Traer un cifrado</h2></div>
+        <button class="icon-btn" data-close="importPanel">×</button>
+      </header>
+      <div class="panel-body">
+        <div class="import-options">
+          <label class="import-card">
+            <span class="big">📷</span><strong>Captura / imagen</strong><small>OCR en el navegador</small>
+            <input id="imageImport" type="file" accept="image/*" hidden>
+          </label>
+          <label class="import-card">
+            <span class="big">📄</span><strong>PDF</strong><small>Extrae texto por páginas</small>
+            <input id="pdfImport" type="file" accept="application/pdf" hidden>
+          </label>
+          <label class="import-card">
+            <span class="big">📝</span><strong>Word</strong><small>.docx</small>
+            <input id="docxImport" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+          </label>
+        </div>
+        <div class="divider"><span>o pega el cifrado</span></div>
+        <textarea id="pasteImportText" class="big-textarea" placeholder="Pega aquí letra, acordes y secciones…"></textarea>
+        <div id="importStatus" class="import-status hidden"></div>
+        <button class="primary full" id="processPasteBtn">Analizar y abrir editor</button>
+        <p class="tiny-note">Todo lo importado pasa primero por el editor para que puedas revisar y corregir antes de guardar.</p>
+      </div>
+    </section>
+  </div>
+
+  <div id="stageView" class="stage hidden">
+    <header class="stage-top">
+      <div>
+        <p id="stageArtist"></p>
+        <h2 id="stageTitle"></h2>
+      </div>
+      <div class="stage-meta"><span id="stageKey"></span><span id="stageBpm"></span><span id="stageMeter"></span></div>
+      <button class="icon-btn" id="exitStageBtn">×</button>
+    </header>
+    <div class="stage-toolbar">
+      <div class="stage-pad-controls">
+        <select id="stagePadKey"></select>
+        <button id="stagePadPlay">▶ PAD</button>
+        <label>Vol.<input id="stagePadVolume" type="range" min="0" max="1" step="0.01" value="0.55"></label>
+      </div>
+      <div class="stage-scroll-controls">
+        <button id="autoScrollBtn">▶ Autoscroll</button>
+        <label>Velocidad <input id="scrollSpeed" type="range" min="0" max="100" value="28"></label>
+      </div>
+      <div class="stage-font-controls"><button id="stageFontDown">A−</button><button id="stageFontUp">A＋</button></div>
+    </div>
+    <main id="stageScroller" class="stage-scroller"><div id="stageSections" class="stage-sections"></div></main>
+    <footer class="stage-footer"><button id="prevSongBtn">← Anterior</button><span id="stageProgress">1 / 1</span><button id="nextSongBtn">Siguiente →</button></footer>
+  </div>
+
+  <audio id="padAudio" preload="none"></audio>
+  <div id="toast" class="toast hidden"></div>
+  <script src="app.js"></script>
+</body>
+</html>
